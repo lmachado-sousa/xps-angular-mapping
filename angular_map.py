@@ -21,7 +21,7 @@ def load_map(path, symmetry=RAW, rotate=0):
     A = np.loadtxt(path, skiprows=1)
 
     if ext == "xpd":
-        THETA, PHI, ki = _xpd_points(A[:, 0], A[:, 1], symmetry)
+        THETA, PHI, ki = _xpd_points(A[:, 0], A[:, 1], A[:, 2], symmetry)
     elif ext == "hol":
         THETA, PHI, ki = A[:, 0], A[:, 1], A[:, 4]
     elif ext == "dat":
@@ -50,89 +50,40 @@ def load_map(path, symmetry=RAW, rotate=0):
     return THETA, PHI, ki
 
 
-def _xpd_points(intensity, theta_degree, symmetry):
-    """Normalise each theta ring and, for the symmetry modes, fold it into one sector."""
+def _xpd_points(intensity, theta_degree, phi_degree, symmetry):
+    """Normalise each theta ring and, for the symmetry modes, fold it into one sector.
+
+    Rings are expected in increasing phi with 3-degree steps. The 60 and 120 degree modes
+    fold a 240-degree scan; the 90 degree mode folds a 270-degree scan.
+    """
     ki = np.array([])
     THETA, PHI = [], []
+    parts = {SYM60: 4, SYM90: 3}
 
     for t in range(int(min(theta_degree)), int(max(theta_degree))+1, 3):
-        I_t = intensity[np.where(theta_degree == t)]
-        I_tm = []
-        if symmetry == RAW:
-            for i in range(len(I_t)):
-                THETA.append(t)
-                PHI.append(3*i)
-            I_m = np.sum(I_t)/len(I_t)
-            NI = (I_t-I_m)/I_m
-            ki = np.append(ki, NI)
-
-        if symmetry == SYM60:
-            if len(I_t) % 4 == 0:
-                for i in range(len(I_t)//4):
-                    I_tm.append((I_t[i]+I_t[i+len(I_t)//4]+I_t[i+2*len(I_t)//4]+I_t[i+3*len(I_t)//4])/2.)
-                    THETA.append(t)
-                    PHI.append(3*i)
-            else:
-                for i in range(len(I_t)//4+1):
-                    if I_t[i] == I_t[-1]:
-                        I_tm.append(I_t[i])
-                        THETA.append(t)
-                        PHI.append(3*i)
-                    else:
-                        I_tm.append((I_t[i]+I_t[i+len(I_t)//4]+I_t[i+2*len(I_t)//4]+I_t[i+3*len(I_t)//4])/2.)
-                        THETA.append(t)
-                        PHI.append(3*i)
-            I_m = np.sum(I_tm)/len(I_tm)
-            NI = (I_tm - I_m)/I_m
-            ki = np.append(ki, NI)
-
-        if symmetry == SYM120:
-            if len(I_t) > 230/3.:
-                if len(I_t) % 2 == 0:
-                    for i in range(len(I_t)//2):
-                        I_tm.append((I_t[i]+I_t[i+len(I_t)//2])/2.)
-                        THETA.append(t)
-                        PHI.append(3*i)
-                else:
-                    for i in range(len(I_t)//2+1):
-                        if I_t[i] == I_t[-1]:
-                            I_tm.append(I_t[i])
-                            THETA.append(t)
-                            PHI.append(3*i)
-                        else:
-                            I_tm.append((I_t[i]+I_t[i+len(I_t)//2])/2.)
-                            THETA.append(t)
-                            PHI.append(3*i)
-            else:
-                for i in range(len(I_t)):
-                    I_tm.append(I_t[i])
-                    THETA.append(t)
-                    PHI.append(3*i)
-            I_m = np.sum(I_tm)/len(I_tm)
-            NI = (I_tm - I_m)/I_m
-            ki = np.append(ki, NI)
-
-        if symmetry == SYM90:
-            if len(I_t) % 3 == 0:
-                for i in range(len(I_t)//3):
-                    I_tm.append((I_t[i]+I_t[i+len(I_t)//3]+I_t[i+2*len(I_t)//3])/2.)
-                    THETA.append(t)
-                    PHI.append(3*i)
-            else:
-                for i in range(len(I_t)//3+1):
-                    if I_t[i] == I_t[-1]:
-                        I_tm.append(I_t[i])
-                        THETA.append(t)
-                        PHI.append(3*i)
-                    else:
-                        I_tm.append((I_t[i]+I_t[i+len(I_t)//3]+I_t[i+2*len(I_t)//3])/2.)
-                        THETA.append(t)
-                        PHI.append(3*i)
-            I_m = np.sum(I_tm)/len(I_tm)
-            NI = (I_tm - I_m)/I_m
-            ki = np.append(ki, NI)
+        ring = np.where(theta_degree == t)
+        I_t, phi_t = intensity[ring], phi_degree[ring]
+        if symmetry in parts:
+            I_tm, phi_tm = _fold(I_t, phi_t, parts[symmetry])
+        elif symmetry == SYM120 and len(I_t) > 230/3.:
+            I_tm, phi_tm = _fold(I_t, phi_t, 2)
+        else:
+            I_tm, phi_tm = I_t, phi_t
+        THETA.extend([t]*len(I_tm))
+        PHI.extend(phi_tm)
+        I_m = np.sum(I_tm)/len(I_tm)
+        NI = (np.asarray(I_tm) - I_m)/I_m
+        ki = np.append(ki, NI)
 
     return THETA, PHI, ki
+
+
+def _fold(I_t, phi_t, parts):
+    """Average the `parts` equivalent sectors of a ring; returns the values and their phi."""
+    size = len(I_t)//parts
+    count = size if len(I_t) % parts == 0 else size+1
+    values = [sum(I_t[i+j*size] for j in range(parts))/parts for i in range(count)]
+    return values, phi_t[:count]
 
 
 def interpolate_map(THETA, PHI, ki, symmetry=RAW):
@@ -151,7 +102,7 @@ def interpolate_map(THETA, PHI, ki, symmetry=RAW):
     gphi = np.arctan2(gy, gx)
     gtheta = np.sqrt(gx**2 + gy**2)
 
-    gphi = gphi - np.amin(gphi)
+    gphi = np.mod(gphi, 2*np.pi)  # same azimuth as the data: arctan2 range (-pi, pi] mapped to [0, 2pi)
 
     h, l = np.where(gtheta < min(THETA))
     z[h, l] = min(ki)
