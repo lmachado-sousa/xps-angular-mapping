@@ -444,6 +444,7 @@ class MainWindow(tk.Frame):
             self.index += 1
             self.progress["value"] = i
             self.update_idletasks()
+        self.index = len(self.files)-1  # the last spectrum stays on screen; the loop left index one past it
         if self.peak_trigger==True:
             self.output1.close()
             self.output2.close()
