@@ -1,0 +1,4 @@
+# Verified with Python 3.13.12 and Tk 9.0. Tk does not come from pip: see the README.
+numpy==2.5.4
+scipy==1.18.1
+matplotlib==3.11.2

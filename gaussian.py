@@ -1,5 +1,4 @@
 import numpy as np
-import scipy as sp
 import scipy.linalg as sl
 
 def gauss(x, A=1, mu=1, sigma=1):
@@ -79,11 +78,11 @@ def fit_direct(x, y, F=0, weighted=True, _weights=None):
     xx_ls = np.sum(ly * x**2)
     B = np.array([ls, x_ls, xx_ls])
 
-    (a, b, c), res, rank, s = np.linalg.lstsq(A, B)
+    (a, b, c), res, rank, s = np.linalg.lstsq(A, B, rcond=-1)
 
     A = np.exp(a - (b**2 / (4 * c)))
     mu = -b / (2 * c)
-    sigma = sp.sqrt(-1 / (2 * c))
+    sigma = np.emath.sqrt(-1 / (2 * c))
 
     return A, mu, sigma
 

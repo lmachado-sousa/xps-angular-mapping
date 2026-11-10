@@ -1,32 +1,36 @@
-import Tkinter, tkFileDialog, os, ttk, tkMessageBox
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+import os
+import re
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
 import matplotlib as mpl
 import numpy as np
-import re
-from shirley import shirley
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
+import angular_map
+import colormaps
 import gaussian
 import savitzky
-from scipy import interpolate
-import colormaps
+from shirley import shirley
 
-class MainWindow(Tkinter.Frame):
+class MainWindow(tk.Frame):
     def __init__(self,parent=None):
 #Creating frames
-        Tkinter.Frame.__init__(self)
+        tk.Frame.__init__(self)
         self.pack(expand=True,fill='both')
-        self.menu_frame = Tkinter.Frame(self)
-        self.menu_frame.pack(side=Tkinter.TOP)
-        self.image_frame = Tkinter.Frame(self)
-	self.image_frame.pack(side=Tkinter.TOP, expand=True, fill='both')
-        self.inter_frame = Tkinter.Frame(self)
+        self.menu_frame = tk.Frame(self)
+        self.menu_frame.pack(side=tk.TOP)
+        self.image_frame = tk.Frame(self)
+        self.image_frame.pack(side=tk.TOP, expand=True, fill='both')
+        self.inter_frame = tk.Frame(self)
         self.inter_frame.pack(expand=True)
-	self.info_frame = Tkinter.Frame(self)
-        self.info_frame.pack(side=Tkinter.TOP, expand=True, fill='both')
-        self.slider_frame = Tkinter.Frame(self)
-        self.slider_frame.pack(side=Tkinter.TOP)
-        self.progress_frame = Tkinter.Frame(self)
-        self.progress_frame.pack(side=Tkinter.TOP)
+        self.info_frame = tk.Frame(self)
+        self.info_frame.pack(side=tk.TOP, expand=True, fill='both')
+        self.slider_frame = tk.Frame(self)
+        self.slider_frame.pack(side=tk.TOP)
+        self.progress_frame = tk.Frame(self)
+        self.progress_frame.pack(side=tk.TOP)
 #Change Tkinter themes using ttk
         self.style = ttk.Style()
         self.style.configure('TButton',relief='flat')
@@ -35,54 +39,54 @@ class MainWindow(Tkinter.Frame):
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig,master=self.image_frame)
-        self.canvas.show()
-        self.canvas.get_tk_widget().pack(side='bottom', fill=Tkinter.BOTH, expand=True)
-        self.label = Tkinter.Label(self.info_frame)
-        self.label.pack(side=Tkinter.LEFT)
-        self.evlabel = Tkinter.Label(self.info_frame)
-        self.evlabel.pack(side=Tkinter.RIGHT)
-        self.slider = Tkinter.Scale(self.slider_frame,orient=Tkinter.HORIZONTAL,length=300,
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side='bottom', fill=tk.BOTH, expand=True)
+        self.label = tk.Label(self.info_frame)
+        self.label.pack(side=tk.LEFT)
+        self.evlabel = tk.Label(self.info_frame)
+        self.evlabel.pack(side=tk.RIGHT)
+        self.slider = tk.Scale(self.slider_frame,orient=tk.HORIZONTAL,length=300,
                                     command=self.slide_image,to=0,sliderrelief='flat')
-        self.slider.pack(side=Tkinter.BOTTOM)
+        self.slider.pack(side=tk.BOTTOM)
         self.progress = ttk.Progressbar(self.progress_frame,orient="horizontal",length=300, mode="determinate")
         self.progress.pack()
 
 #Creates main application buttons
-        self.openbutton = ttk.Button(self.menu_frame, text = "Open", command=self.openfile).pack(side=Tkinter.LEFT)
-        self.prevbutton = ttk.Button(self.inter_frame, text = "<", command=self.previmg, state=Tkinter.DISABLED)
-        self.prevbutton.pack(side=Tkinter.LEFT)
-        self.nextbutton = ttk.Button(self.inter_frame, text = ">", command=self.nextimg, state=Tkinter.DISABLED)
-        self.nextbutton.pack(side=Tkinter.LEFT)
+        self.openbutton = ttk.Button(self.menu_frame, text = "Open", command=self.openfile).pack(side=tk.LEFT)
+        self.prevbutton = ttk.Button(self.inter_frame, text = "<", command=self.previmg, state=tk.DISABLED)
+        self.prevbutton.pack(side=tk.LEFT)
+        self.nextbutton = ttk.Button(self.inter_frame, text = ">", command=self.nextimg, state=tk.DISABLED)
+        self.nextbutton.pack(side=tk.LEFT)
         self.testbutton = ttk.Button(self.menu_frame, text = "Double Peak",
-                                    command=self.double_peak, state = Tkinter.DISABLED)
-        self.testbutton.pack(side=Tkinter.LEFT)
-        self.incbutton = ttk.Button(self.menu_frame, text = "+", command=self.increase_psize, state=Tkinter.DISABLED)
-        self.incbutton.pack(side=Tkinter.LEFT)
-        self.decbutton = ttk.Button(self.menu_frame, text = "-", command=self.decrease_psize, state=Tkinter.DISABLED)
-        self.decbutton.pack(side=Tkinter.LEFT)
-        self.runbutton = ttk.Button(self.menu_frame, text = "Run", command=self.run, state=Tkinter.DISABLED)
-        self.runbutton.pack(side=Tkinter.LEFT)
-        self.pizzabutton = ttk.Button(self.menu_frame, text = "Pizza!", command=self.makepizza, state=Tkinter.NORMAL)
-        self.pizzabutton.pack(side=Tkinter.LEFT)
+                                    command=self.double_peak, state = tk.DISABLED)
+        self.testbutton.pack(side=tk.LEFT)
+        self.incbutton = ttk.Button(self.menu_frame, text = "+", command=self.increase_psize, state=tk.DISABLED)
+        self.incbutton.pack(side=tk.LEFT)
+        self.decbutton = ttk.Button(self.menu_frame, text = "-", command=self.decrease_psize, state=tk.DISABLED)
+        self.decbutton.pack(side=tk.LEFT)
+        self.runbutton = ttk.Button(self.menu_frame, text = "Run", command=self.run, state=tk.DISABLED)
+        self.runbutton.pack(side=tk.LEFT)
+        self.pizzabutton = ttk.Button(self.menu_frame, text = "Pizza!", command=self.makepizza, state=tk.NORMAL)
+        self.pizzabutton.pack(side=tk.LEFT)
         self.configbutton = ttk.Button(self.menu_frame, text = "Configuration",
-                                    command=self.config).pack(side=Tkinter.LEFT)
+                                    command=self.config).pack(side=tk.LEFT)
         self.stylebutton = ttk.Button(self.menu_frame, text = "Theme",
-                                    command = self.change_style).pack(side=Tkinter.LEFT)
+                                    command = self.change_style).pack(side=tk.LEFT)
 #Canvas event handling and other useful variables
-        self.regex = "\d{2,3}(?=\.)"
+        self.regex = r"\d{2,3}(?=\.)"
         self.peak_trigger = False
         self.run_trigger = False
         self.pizza_trigger = False
         self.peak_size = 6
         self.degree = 0
         self.colormap = colormaps.afmcold
-        self.toggleViewState = Tkinter.IntVar()
+        self.toggleViewState = tk.IntVar()
         self.toggleViewState.set(1)
-        self.toggleShirleyState = Tkinter.IntVar()
+        self.toggleShirleyState = tk.IntVar()
         self.toggleShirleyState.set(1)
-        self.toggleGaussianState = Tkinter.IntVar()
+        self.toggleGaussianState = tk.IntVar()
         self.toggleGaussianState.set(1)
-        self.simmetryState = Tkinter.IntVar()
+        self.simmetryState = tk.IntVar()
         self.simmetryState.set(0)
 #Define options for opening files
         self.file_opt = options = {}
@@ -102,9 +106,9 @@ class MainWindow(Tkinter.Frame):
         """Create a subplot and set index variable to 0 (first file).
         Open multiple text files with the data collected on LNLS, already splited.
         Then, activate the buttons that were Disabled and configure the Slider length."""
-        self.ax = self.fig.add_subplot(111)
+        self.ax = self.main_axes()
         self.index = 0
-        self.files =  tkFileDialog.askopenfilenames(**self.file_opt)
+        self.files =  filedialog.askopenfilenames(**self.file_opt)
         if not self.files:
             return
         else:
@@ -112,13 +116,13 @@ class MainWindow(Tkinter.Frame):
             self.Scale = True
             self.evlabel["text"] = os.path.basename(self.files[0])
             self.slider.configure(from_=0,to=len(self.files)-1)
-            self.testbutton["state"] = Tkinter.NORMAL
-            self.incbutton["state"] = Tkinter.NORMAL
-            self.decbutton["state"] = Tkinter.NORMAL
-            self.runbutton["state"] = Tkinter.NORMAL
+            self.testbutton["state"] = tk.NORMAL
+            self.incbutton["state"] = tk.NORMAL
+            self.decbutton["state"] = tk.NORMAL
+            self.runbutton["state"] = tk.NORMAL
             if len(self.files) > 1:
-                self.nextbutton["state"] = Tkinter.NORMAL
-                self.prevbutton["state"] = Tkinter.NORMAL
+                self.nextbutton["state"] = tk.NORMAL
+                self.prevbutton["state"] = tk.NORMAL
 
     def plotsimple(self,txt):
         """The axis are cleared, in case any plot was there before.
@@ -129,8 +133,8 @@ class MainWindow(Tkinter.Frame):
         If the Run button is pressed, it integrates the Gaussian Peak adjusted and saves the data on output file."""
         self.ax.clear()
         self.ax.get_xaxis().set_ticks([])
-        File = open(txt)
-        L = re.findall(r"[-+]?\d*\.\d+|d+",File.readline())
+        with open(txt) as File:
+            L = re.findall(r"[-+]?\d*\.\d+|d+",File.readline())
         initialEnergy = float(L[0])
         finalEnergy = float(L[1])
         step = float(L[2])
@@ -162,7 +166,7 @@ class MainWindow(Tkinter.Frame):
                     if self.toggleViewState.get() == 1:
                         self.ax.plot(x_n,y,'r-')
                     if self.run_trigger == True:
-                        integrate = np.trapz(y,x_n)
+                        integrate = np.trapezoid(y,x_n)
                         txt = txt.split("/")[-1]
                         tp = re.findall(r"[-+]?\d*\.\d+|d+",txt)
                         tp = tp[0].split('.')
@@ -181,8 +185,8 @@ class MainWindow(Tkinter.Frame):
                 Xs, Ys = Xs[init+1:end], Ys[init+1:end]
 
                 peak = max(Ys)
-                peak_index = np.where(Ys==peak)[0]
-                if peak_index>len(Xs)/2:
+                peak_index = int(np.where(Ys==peak)[0][0])
+                if peak_index>len(Xs)//2:
                     X1, Y1 = Xs[0:peak_index-self.peak_size], Ys[0:peak_index-self.peak_size]
                     X2, Y2 = Xs[peak_index-self.peak_size:-1], Ys[peak_index-self.peak_size:-1]
                 else:
@@ -203,7 +207,7 @@ class MainWindow(Tkinter.Frame):
                         if self.toggleViewState.get() == 1:
                             self.ax.plot(x_n,y,'r-')
                         if self.run_trigger == True:
-                            integrate = np.trapz(y,x_n)
+                            integrate = np.trapezoid(y,x_n)
                             txt = txt.split("/")[-1]
                             tp = re.findall(r"[-+]?\d*\.\d+|d+",txt)
                             tp = tp[0].split('.')
@@ -267,8 +271,8 @@ class MainWindow(Tkinter.Frame):
 
     def config(self):
         """Sets a configuration window."""
-        self.config_window = Tkinter.Toplevel(self)
-        self.config_frame = Tkinter.Frame(self.config_window)
+        self.config_window = tk.Toplevel(self)
+        self.config_frame = tk.Frame(self.config_window)
         self.config_frame.pack(side='top',expand=True, fill='both')
         self.barfig = Figure(figsize=(5,3))
         self.barfig.set_facecolor("#d9d9d9")
@@ -285,50 +289,50 @@ class MainWindow(Tkinter.Frame):
         cb3.ax.set_yticklabels([])
         cb4.ax.set_yticklabels([])
         self.barcanvas = FigureCanvasTkAgg(self.barfig,master=self.config_frame)
-        self.barcanvas.get_tk_widget().pack(side='top', fill=Tkinter.BOTH, expand=True)
-        self.barcanvas.show()
-        self.button1 = Tkinter.Button(self.config_frame, text="Blue",command=self.select_blue,width=10)
-        self.button2 = Tkinter.Button(self.config_frame, text="Green",command=self.select_green,width=10)
-        self.button3 = Tkinter.Button(self.config_frame, text="Red",command=self.select_red,width=10)
-        self.button4 = Tkinter.Button(self.config_frame, text="Inferno",command=self.select_inferno,width=10)
+        self.barcanvas.get_tk_widget().pack(side='top', fill=tk.BOTH, expand=True)
+        self.barcanvas.draw()
+        self.button1 = tk.Button(self.config_frame, text="Blue",command=self.select_blue,width=10)
+        self.button2 = tk.Button(self.config_frame, text="Green",command=self.select_green,width=10)
+        self.button3 = tk.Button(self.config_frame, text="Red",command=self.select_red,width=10)
+        self.button4 = tk.Button(self.config_frame, text="Inferno",command=self.select_inferno,width=10)
         self.button1.pack(side='left')
         self.button2.pack(side='left')
         self.button3.pack(side='left')
         self.button4.pack(side='left')
         self.barcanvas.draw()
-        self.checkV_frame = Tkinter.Frame(self.config_window)
+        self.checkV_frame = tk.Frame(self.config_window)
         self.checkV_frame.pack(side='bottom',expand=True,fill='both')
-        self.checkS_frame = Tkinter.Frame(self.config_window)
+        self.checkS_frame = tk.Frame(self.config_window)
         self.checkS_frame.pack(side='bottom',expand=True,fill='both')
-        self.checkG_frame = Tkinter.Frame(self.config_window)
+        self.checkG_frame = tk.Frame(self.config_window)
         self.checkG_frame.pack(side='bottom',expand=True,fill='both')
-        self.toggleView = Tkinter.Checkbutton(self.checkV_frame,variable=self.toggleViewState, onvalue=1,
+        self.toggleView = tk.Checkbutton(self.checkV_frame,variable=self.toggleViewState, onvalue=1,
                                             offvalue=0, text="Toggle graph visualization").pack(side='left')
-        self.toggleShirley = Tkinter.Checkbutton(self.checkS_frame,variable=self.toggleShirleyState, onvalue=1,
+        self.toggleShirley = tk.Checkbutton(self.checkS_frame,variable=self.toggleShirleyState, onvalue=1,
                                             offvalue=0, text ="Shirley Background Subtraction").pack(side='left')
-        self.toggleGaussian = Tkinter.Checkbutton(self.checkG_frame,variable=self.toggleGaussianState, onvalue=1,
+        self.toggleGaussian = tk.Checkbutton(self.checkG_frame,variable=self.toggleGaussianState, onvalue=1,
                                             offvalue=0, text ="Gaussian Fit").pack(side='left')
-        self.pizzaframe = Tkinter.Frame(self.config_window)
+        self.pizzaframe = tk.Frame(self.config_window)
         self.pizzaframe.pack(side="top", expand=True, fill="both")
-        self.rotatelabel = Tkinter.Label(self.pizzaframe, text="Rotate Pizza (degrees)").pack()
-        self.r1 = Tkinter.Entry(self.pizzaframe)
+        self.rotatelabel = tk.Label(self.pizzaframe, text="Rotate Pizza (degrees)").pack()
+        self.r1 = tk.Entry(self.pizzaframe)
         self.r1.pack(padx=5)
-        self.rotatebutton = Tkinter.Button(self.pizzaframe, text="Rotate", command=self.rotate)
+        self.rotatebutton = tk.Button(self.pizzaframe, text="Rotate", command=self.rotate)
         self.rotatebutton.pack()
-        self.simmetryframe = Tkinter.Frame(self.config_window)
+        self.simmetryframe = tk.Frame(self.config_window)
         self.simmetryframe.pack(side="top", expand=True, fill="both")
-        self.simmetrylabel = Tkinter.Label(self.simmetryframe, text="Select system simmetry").pack()
-        self.raw = Tkinter.Radiobutton(self.simmetryframe, text = "Raw Data",
+        self.simmetrylabel = tk.Label(self.simmetryframe, text="Select system simmetry").pack()
+        self.raw = tk.Radiobutton(self.simmetryframe, text = "Raw Data",
                     variable=self.simmetryState, value=0,command=self.change_simmetry).pack()
-        self.d60 = Tkinter.Radiobutton(self.simmetryframe, text = u"60\N{DEGREE SIGN}", 
+        self.d60 = tk.Radiobutton(self.simmetryframe, text = u"60\N{DEGREE SIGN}", 
                     variable = self.simmetryState, value=1, command = self.change_simmetry).pack()
-        self.d120 = Tkinter.Radiobutton(self.simmetryframe, text = u"120\N{DEGREE SIGN}", 
+        self.d120 = tk.Radiobutton(self.simmetryframe, text = u"120\N{DEGREE SIGN}", 
                     variable = self.simmetryState, value=2, command = self.change_simmetry).pack()
-        self.d90 = Tkinter.Radiobutton(self.simmetryframe, text = u"90\N{DEGREE SIGN}",
+        self.d90 = tk.Radiobutton(self.simmetryframe, text = u"90\N{DEGREE SIGN}",
                     variable = self.simmetryState, value=3, command = self.change_simmetry).pack()
-        self.exportframe = Tkinter.Frame(self.config_window)
+        self.exportframe = tk.Frame(self.config_window)
         self.exportframe.pack(side="top", expand=True, fill="both")
-        self.exportbutton = Tkinter.Button(self.exportframe, text="Export Data", command=self.export)
+        self.exportbutton = tk.Button(self.exportframe, text="Export Data", command=self.export)
         self.exportbutton.pack()
 
     def export(self):
@@ -338,7 +342,7 @@ class MainWindow(Tkinter.Frame):
                 for pp in range(int(360*min(self.PHI)/(2*np.pi)),int(360*max(self.PHI)/(2*np.pi))+1,3):
                     p = self.find_nearest(self.gphi*360/(2*np.pi),pp)
                     t = self.find_nearest(self.gtheta,tt)
-                    print pp, tt
+                    print(pp, tt)
         except NameError:
             pass
 
@@ -379,7 +383,7 @@ class MainWindow(Tkinter.Frame):
 
     def change_style(self):
         """Set a new window with a Combobox to choose between themes"""
-        self.combo_window = Tkinter.Toplevel(self)
+        self.combo_window = tk.Toplevel(self)
         self.combo = ttk.Combobox(self.combo_window, values=self.available_themes)
         self.combo.pack(padx=32, pady=8)
         self.combo.bind('<Return>', self.set_style)
@@ -393,8 +397,8 @@ class MainWindow(Tkinter.Frame):
         try:
             self.style.theme_use(content)
             self.style.configure('TButton', relief='flat')
-        except Tkinter.TclError as err:
-            tkMessageBox.showerror('Error', err)
+        except tk.TclError as err:
+            messagebox.showerror('Error', err)
         self.combo_window.destroy()
 
     def run(self):
@@ -402,19 +406,19 @@ class MainWindow(Tkinter.Frame):
         integrating the data and saving to the outputs."""
         self.toggleShirleyState.set(1)
         self.toggleGaussianState.set(1)
-        self.out_window = Tkinter.Toplevel(self)
+        self.out_window = tk.Toplevel(self)
         if self.peak_trigger == True:
-            Tkinter.Label(self.out_window, text="Output File 1").pack()
-            self.e1 = Tkinter.Entry(self.out_window)
+            tk.Label(self.out_window, text="Output File 1").pack()
+            self.e1 = tk.Entry(self.out_window)
             self.e1.pack(padx=5)
-            Tkinter.Label(self.out_window, text="Output File2").pack()
-            self.e2 = Tkinter.Entry(self.out_window)
+            tk.Label(self.out_window, text="Output File2").pack()
+            self.e2 = tk.Entry(self.out_window)
             self.e2.pack(padx=5)
         else:
-            Tkinter.Label(self.out_window, text="Output File").pack()
-            self.e = Tkinter.Entry(self.out_window)
+            tk.Label(self.out_window, text="Output File").pack()
+            self.e = tk.Entry(self.out_window)
             self.e.pack(padx=5)
-        self.okbutton = Tkinter.Button(self.out_window, text="OK",command=self.ok)
+        self.okbutton = tk.Button(self.out_window, text="OK",command=self.ok)
         self.okbutton.pack(pady=5)
         self.out_window.bind('<Return>', self.ok)
 
@@ -465,179 +469,39 @@ class MainWindow(Tkinter.Frame):
             self.config_window.destroy()
             self.pizza_trigger = False
         self.config()
-        self.files2 =  tkFileDialog.askopenfilename(**self.file_opt2)
+        self.files2 =  filedialog.askopenfilename(**self.file_opt2)
         self.plotpizza()
         self.pizza_trigger = True
 
+    def main_axes(self):
+        """Return the Cartesian axes, creating it only if it is no longer in the figure.
+        Old Matplotlib returned the existing axes from add_subplot(111); new versions stack a new one."""
+        if self.ax not in self.fig.axes:
+            self.ax = self.fig.add_subplot(111)
+        return self.ax
+
     def plotpizza(self, rotate=0):
-        self.ax = self.fig.add_subplot(111)
+        self.ax = self.main_axes()
         self.ax.clear()
         if not self.files2:
-            pass
-        else:
-            self.ext = self.files2.split('.')[-1]
-            A = np.loadtxt(self.files2,skiprows=1)
+            return
+        symmetry = self.simmetryState.get()
+        THETA, PHI, ki = angular_map.load_map(self.files2, symmetry, rotate)
+        self.THETA, self.PHI = THETA, PHI
+        self.gtheta, self.gphi, self.z = angular_map.interpolate_map(THETA, PHI, ki, symmetry)
 
-            if self.ext=="xpd":
-                intensity, theta, phi = A[:,0], A[:,1], A[:,2]
+        norm = mpl.colors.Normalize(self.z.flatten().min(),self.z.flatten().max())
 
-                intensity = [float(x) for x in intensity]
-                theta_degree = theta
-                intensity = np.array(intensity)
+        self.fig.delaxes(self.ax)
+        self.ax2 = self.fig.add_subplot(1,1,1, polar = True)
+        # Matplotlib < 3.3 drew a same-shape C with 'flat' shading by dropping its last row and column.
+        self.ax2.pcolormesh(self.gphi, self.gtheta, self.z[:-1, :-1], shading='flat', cmap=self.colormap, norm=norm)
+        self.ax2.set_yticks([min(THETA),max(THETA)])
+        self.ax2.grid(True)
+        self.ax2.set_rmax(max(THETA))
+        self.fig.savefig(self.files2+".jpg")
+        self.canvas.draw()
+        self.fig.delaxes(self.ax2)
 
-                theta, phi = np.pi*theta/180., np.pi*phi/180.
-
-                ki = np.array([])
-                THETA, PHI  = [], []
-
-                for t in range(int(min(theta_degree)),int(max(theta_degree))+1,3):
-                    I_t = intensity[np.where(theta_degree==t)]
-                    I_tm = []
-                    if self.simmetryState.get()==0:
-                        for i in range(len(I_t)):
-                            THETA.append(t)
-                            PHI.append(3*i)
-                        I_m = np.sum(I_t)/len(I_t)
-                        NI = (I_t-I_m)/I_m
-                        ki = np.append(ki, NI)
-
-                    if self.simmetryState.get()==1:
-                        if len(I_t)%4==0:
-                            for i in range(len(I_t)/4):
-                                I_tm.append((I_t[i]+I_t[i+len(I_t)/4]+I_t[i+2*len(I_t)/4]+I_t[i+3*len(I_t)/4])/2.)
-                                THETA.append(t)
-                                PHI.append(3*i)
-                        else:
-                            for i in range(len(I_t)/4+1):
-                                if I_t[i]==I_t[-1]:
-                                    I_tm.append(I_t[i])
-                                    THETA.append(t)
-                                    PHI.append(3*i)
-                                else:
-                                    I_tm.append((I_t[i]+I_t[i+len(I_t)/4]+I_t[i+2*len(I_t)/4]+I_t[i+3*len(I_t)/4])/2.)
-                                    THETA.append(t)
-                                    PHI.append(3*i)
-                        I_m = np.sum(I_tm)/len(I_tm)
-                        NI = (I_tm - I_m)/I_m
-                        ki = np.append(ki,NI)
-
-                    if self.simmetryState.get()==2:
-                        if len(I_t)>230/3.:
-                            if len(I_t)%2==0:
-                                for i in range(len(I_t)/2):
-                                    I_tm.append((I_t[i]+I_t[i+len(I_t)/2])/2.)
-                                    THETA.append(t)
-                                    PHI.append(3*i)
-                            else:
-                                for i in range(len(I_t)/2+1):
-                                    if I_t[i]==I_t[-1]:
-                                        I_tm.append(I_t[i])
-                                        THETA.append(t)
-                                        PHI.append(3*i)
-                                    else:
-                                        I_tm.append((I_t[i]+I_t[i+len(I_t)/2])/2.)
-                                        THETA.append(t)
-                                        PHI.append(3*i)
-                        else:
-                            for i in range(len(I_t)):
-                                I_tm.append(I_t[i])
-                                THETA.append(t)
-                                PHI.append(3*i)
-                        I_m = np.sum(I_tm)/len(I_tm)
-                        NI = (I_tm - I_m)/I_m
-                        ki = np.append(ki,NI)
-
-                    if self.simmetryState.get()==3:
-                        if len(I_t)%3==0:
-                            for i in range(len(I_t)/3):
-                                I_tm.append((I_t[i]+I_t[i+len(I_t)/3]+I_t[i+2*len(I_t)/3])/2.)
-                                THETA.append(t)
-                                PHI.append(3*i)
-                        else:
-                            for i in range(len(I_t)/3+1):
-                                if I_t[i]==I_t[-1]:
-                                    I_tm.append(I_t[i])
-                                    THETA.append(t)
-                                    PHI.append(3*i)
-                                else:
-                                    I_tm.append((I_t[i]+I_t[i+len(I_t)/3]+I_t[i+2*len(I_t)/3])/2.)
-                                    THETA.append(t)
-                                    PHI.append(3*i)
-                        I_m = np.sum(I_tm)/len(I_tm)
-                        NI = (I_tm - I_m)/I_m
-                        ki = np.append(ki,NI)
-
-            if self.ext=="hol":
-                THETA, PHI, ki = A[:,0], A[:,1], A[:,4]
-                THETA = np.array(THETA)
-                ki = np.array(ki)
-
-            if self.ext=="dat":
-                THETA, PHI, ki = A[:,0], A[:,1], A[:,2]
-                THETA = np.array(THETA)
-                ki = np.array(ki)
-
-            PHI = np.array(PHI)
-            #Shift to get the XPD pizza centralized
-            PHI = np.pi*PHI/180 - np.pi*rotate/180
-
-            self.PHI_ = PHI
-            self.THETA_ = THETA
-            self.ki_ = ki
-
-            if self.simmetryState.get()==1:
-                for i in range(1,6):
-                    PHI = np.append(PHI, self.PHI_ + i*60*np.pi/180)
-                    THETA = np.append(THETA,self.THETA_)
-                    ki = np.append(ki, self.ki_)
-            if self.simmetryState.get()==2:
-                for i in range(1,3):
-                    PHI = np.append(PHI, self.PHI_ + i*120*np.pi/180)
-                    THETA = np.append(THETA, self.THETA_)
-                    ki = np.append(ki, self.ki_)
-            if self.simmetryState.get()==3:
-                for i in range(1,4):
-                    PHI = np.append(PHI, self.PHI_ + i*90*np.pi/180)
-                    THETA = np.append(THETA, self.THETA_)
-                    ki = np.append(ki, self.ki_)
-
-            PHI = PHI - min(PHI)  #Shifts PHI to zero
-            del_index = np.where(PHI>2*np.pi)  #Index of everything greater than 2pi
-            THETA = np.delete(THETA, del_index)  #Deletes indexes
-            ki = np.delete(ki, del_index)
-            PHI = np.delete(PHI, del_index)
-
-            self.THETA, self.PHI = THETA, PHI
-
-            if self.simmetryState.get()==0:
-                gx, gy = np.mgrid[min(THETA):max(THETA):600j, min(PHI):max(PHI):600j]
-                self.z = interpolate.griddata((THETA,PHI),ki,(gx,gy), method='cubic',fill_value=ki.min())
-                self.gphi, self.gtheta = gy, gx
-            else:
-                xx = THETA*np.cos(PHI)
-                yy = THETA*np.sin(PHI)
-
-                gx, gy = np.mgrid[min(xx):max(xx):600j, min(yy):max(yy):600j]
-
-                self.z = interpolate.griddata((xx, yy),ki,(gx,gy), method='cubic',fill_value=ki.min())
-                self.gphi = np.arctan2(gy, gx)
-                self.gtheta = np.sqrt(gx**2 + gy**2)
- 
-                self.gphi = self.gphi -np.amin(self.gphi)
-
-                h, l = np.where(self.gtheta<min(THETA))
-                self.z[h,l] = min(ki)
-
-            norm = mpl.colors.Normalize(self.z.flatten().min(),self.z.flatten().max())
-
-            self.fig.delaxes(self.ax)
-            self.ax2 = self.fig.add_subplot(1,1,1, polar = True)
-            self.ax2.pcolormesh(self.gphi, self.gtheta, self.z,cmap=self.colormap,norm=norm)
-            self.ax2.set_yticks([min(THETA),max(THETA)])
-            self.ax2.grid(True)
-            self.ax2.set_rmax(max(THETA))
-            self.fig.savefig(self.files2+".jpg")
-            self.canvas.draw()
-            self.fig.delaxes(self.ax2)
-
-MainWindow().mainloop()
+if __name__ == "__main__":
+    MainWindow().mainloop()

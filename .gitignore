@@ -1,0 +1,5 @@
+__pycache__/
+# EasyPizza saves every map it draws as <input file>.jpg
+*.xpd.jpg
+*.hol.jpg
+*.dat.jpg
